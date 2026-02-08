@@ -58,7 +58,6 @@ jobs:
         cd $GITHUB_WORKSPACE/kernel_workspace/android-kernel
         if [ "${{ matrix.ks }}" = "rsuntk" ]; then
           curl -LSs https://raw.githubusercontent.com/rsuntk/KernelSU/main/kernel/setup.sh | bash -s main
-          # На Nameless часто нужен ручной хук для 4.19
           echo "CONFIG_KSU_MANUAL_HOOK=y" >> arch/arm64/configs/vendor/kona-perf_defconfig
         else
           curl -LSs https://raw.githubusercontent.com/backslashxx/KernelSU/master/kernel/setup.sh | bash -s master
@@ -73,9 +72,17 @@ jobs:
         export PATH=$GITHUB_WORKSPACE/kernel_workspace/clang-aosp/bin:$GITHUB_WORKSPACE/kernel_workspace/gcc-64/bin:$PATH
         
         MAKE_ARGS="O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-android- LD=ld.lld LLVM=1 LLVM_IAS=1"
-        DEFCONFIG="vendor/kona-perf_defconfig vendor/oplus.config"
-
-        make $MAKE_ARGS $DEFCONFIG
+        
+        # Сначала применяем базовый конфиг
+        make $MAKE_ARGS vendor/kona-perf_defconfig
+        
+        # Объединяем дополнительные фрагменты без интерактивных вопросов
+        make $MAKE_ARGS vendor/oplus.config
+        
+        # Ключевой шаг: автоматически подтверждаем все новые опции (включая KernelSU)
+        make $MAKE_ARGS olddefconfig
+        
+        # Сборка
         make -j$(nproc --all) $MAKE_ARGS
 
     - name: Prepare AnyKernel3
