@@ -73,17 +73,15 @@ jobs:
         
         MAKE_ARGS="O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-android- LD=ld.lld LLVM=1 LLVM_IAS=1"
         
-        # Сначала применяем базовый конфиг
+        # Генерируем конфиг
         make $MAKE_ARGS vendor/kona-perf_defconfig
-        
-        # Объединяем дополнительные фрагменты без интерактивных вопросов
         make $MAKE_ARGS vendor/oplus.config
         
-        # Ключевой шаг: автоматически подтверждаем все новые опции (включая KernelSU)
+        # Авто-подтверждение всех новых опций KSU
         make $MAKE_ARGS olddefconfig
         
-        # Сборка
-        make -j$(nproc --all) $MAKE_ARGS
+        # Пытаемся собрать. Если упадет - запускаем в один поток, чтобы увидеть КРЕШ
+        make -j$(nproc --all) $MAKE_ARGS || make $MAKE_ARGS V=1
 
     - name: Prepare AnyKernel3
       run: |
